@@ -3,142 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จำลองกล้องจุลทรรศน์</title>
+    <title>Interactive Microscope Lab</title>
     <style>
-        body { font-family: sans-serif; background: #1e293b; color: white; text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #334155; padding: 20px; border-radius: 16px; }
-        
-        /* เลนส์กล้อง (วงกลมแสดงภาพ) */
-        .eyepiece {
-            width: 260px; height: 260px; margin: 15px auto;
-            border-radius: 50%; border: 8px solid #0f172a;
-            overflow: hidden; position: relative; background: #000;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 { margin: 5px 0 15px 0; font-size: 1.3rem; color: #38bdf8; }
+
+        /* พื้นที่ส่วนบน: กล้องจุลทรรศน์ + เลนส์ตา */
+        .top-stage {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 650px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
 
-        /* ภาพตัวอย่างเซลล์ (ใช้ SVG วาดจำลองเพื่อให้คมชัดทุกระยะซูม) */
+        /* กราฟิกกล้องจุลทรรศน์ */
+        .microscope-box {
+            position: relative;
+            width: 240px;
+            height: 280px;
+        }
+        .hotspot {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .hotspot:hover {
+            filter: drop-shadow(0 0 8px #38bdf8);
+            opacity: 0.9;
+        }
+        .hotspot.selected {
+            stroke: #38bdf8;
+            stroke-width: 3px;
+            filter: drop-shadow(0 0 10px #38bdf8);
+        }
+
+        /* ช่องมองภาพ (Eyepiece View) */
+        .eyepiece-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .eyepiece {
+            width: 210px;
+            height: 210px;
+            border-radius: 50%;
+            border: 6px solid #020617;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+            box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+        }
         #specimen {
-            width: 100%; height: 100%;
-            transition: transform 0.4s ease, filter 0.1s linear;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.25s ease, filter 0.1s linear;
             transform-origin: center center;
         }
+        .status-badge {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            background: #334155;
+            padding: 5px 12px;
+            border-radius: 20px;
+            color: #cbd5e1;
+        }
 
-        /* แผงควบคุม */
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .control-box { background: #1e293b; padding: 15px; border-radius: 12px; }
-        
-        /* ปุ่มหมุนจำลอง */
-        .knob-btn {
-            width: 60px; height: 60px; border-radius: 50%;
-            background: radial-gradient(circle, #94a3b8, #475569);
-            border: 3px dashed #cbd5e1; color: white; font-weight: bold;
-            cursor: pointer; margin: 10px;
-            transition: transform 0.2s ease;
+        /* พื้นที่ส่วนล่าง: แผงควบคุมที่เปลี่ยนตามจุดที่คลิก */
+        .bottom-panel {
+            margin-top: 15px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 650px;
+            min-height: 160px;
+            box-sizing: border-box;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
-        .lens-btn {
-            padding: 8px 14px; margin: 4px; border: none; border-radius: 6px;
-            background: #3b82f6; color: white; cursor: pointer; font-weight: bold;
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fbbf24;
+            margin-bottom: 5px;
         }
-        .lens-btn.active { background: #10b981; }
+        .panel-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        /* ปุ่มหมุนจำลอง (Rotary Knob) */
+        .knob-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .knob-visual {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: conic-gradient(#64748b, #94a3b8, #475569, #64748b);
+            border: 4px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        /* ขีดบอกตำแหน่งบนปุ่มหมุน */
+        .knob-visual::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            width: 6px;
+            height: 16px;
+            background: #ef4444;
+            border-radius: 3px;
+        }
+        .action-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .action-btn:hover { background: #2563eb; }
+        .action-btn:active { transform: scale(0.95); }
+        .lens-select-btn.active { background: #10b981; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🔬 ห้องแล็บจำลองกล้องจุลทรรศน์</h2>
-    <p id="statusText">กำลังขยาย: 4x | ความชัด: เบลอ | แสง: 100%</p>
+    <h2>🔬 คลิกที่ส่วนประกอบของกล้องเพื่อปรับค่า</h2>
 
-    <!-- ช่องมองภาพ -->
-    <div class="eyepiece">
-        <!-- ภาพจำลองเซลล์พืช -->
-        <svg id="specimen" viewBox="0 0 200 200">
-            <rect width="200" height="200" fill="#dcfce7"/>
-            <g stroke="#166534" stroke-width="3" fill="#86efac">
-                <rect x="20" y="20" width="75" height="50" rx="8"/>
-                <rect x="105" y="20" width="75" height="50" rx="8"/>
-                <rect x="20" y="80" width="75" height="50" rx="8"/>
-                <rect x="105" y="80" width="75" height="50" rx="8"/>
-                <rect x="20" y="140" width="75" height="45" rx="8"/>
-                <rect x="105" y="140" width="75" height="45" rx="8"/>
-            </g>
-            <!-- นิวเคลียส -->
-            <circle cx="55" cy="45" r="8" fill="#14532d"/>
-            <circle cx="140" cy="45" r="8" fill="#14532d"/>
-            <circle cx="60" cy="105" r="8" fill="#14532d"/>
-            <circle cx="135" cy="105" r="8" fill="#14532d"/>
-        </svg>
-    </div>
-
-    <!-- เลือกเลนส์วัตถุ -->
-    <div>
-        <strong>เลือกเลนส์วัตถุ (Objective):</strong><br>
-        <button class="lens-btn active" onclick="setZoom(1, '4x', this)">4x</button>
-        <button class="lens-btn" onclick="setZoom(2.2, '10x', this)">10x</button>
-        <button class="lens-btn" onclick="setZoom(4.5, '40x', this)">40x</button>
-    </div>
-
-    <!-- ปุ่มหมุนปรับโฟกัสและแสง -->
-    <div class="controls">
-        <div class="control-box">
-            <div><strong>ปุ่มปรับโฟกัส</strong></div>
-            <button class="knob-btn" id="focusKnob" onclick="adjustFocus(-1)">-</button>
-            <button class="knob-btn" onclick="adjustFocus(1)">+</button>
-        </div>
-        <div class="control-box">
-            <div><strong>ปุ่มปรับความสว่าง</strong></div>
-            <button class="knob-btn" id="lightKnob" onclick="adjustLight(-20)">-</button>
-            <button class="knob-btn" onclick="adjustLight(20)">+</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let focusLevel = 6;      // ระยะโฟกัสปัจจุบัน (0 คือชัดที่สุด)
-    let targetFocus = 0;     // จุดโฟกัสที่ชัดที่สุด
-    let brightness = 100;    // ความสว่าง (%)
-    let currentZoom = 1;     // ระดับการซูม
-    let zoomLabel = '4x';
-    let knobAngle = 0;
-
-    function updateMicroscope() {
-        const img = document.getElementById('specimen');
-        // คำนวณความเบลอจากระยะห่างของจุดโฟกัส
-        const blurAmount = Math.abs(focusLevel - targetFocus) * 1.5;
+    <!-- ส่วนบน: กล้องจุลทรรศน์ และ เลนส์ตา -->
+    <div class="top-stage">
         
-        img.style.filter = `blur(${blurAmount}px) brightness(${brightness}%)`;
-        img.style.transform = `scale(${currentZoom})`;
+        <!-- ภาพวาดกล้องจุลทรรศน์แบบคลิกได้ -->
+        <div class="microscope-box">
+            <svg viewBox="0 0 240 280" width="100%" height="100%">
+                <!-- ฐานกล้อง (Base) -->
+                <path d="M 40 250 L 200 250 L 190 230 L 50 230 Z" fill="#475569"/>
+                <!-- แขนกล้อง (Arm) -->
+                <path d="M 155 60 Q 195 140 165 230 L 140 230 Q 165 140 135 70 Z" fill="#64748b"/>
+                <!-- ลำกล้อง (Body Tube) & เลนส์ใกล้ตา (Eyepiece) -->
+                <rect x="85" y="15" width="22" height="35" rx="3" fill="#1e293b"/>
+                <rect x="80" y="45" width="32" height="55" rx="4" fill="#94a3b8"/>
 
-        const clarityText = blurAmount === 0 ? "คมชัด 100%" : `เบลอ (${blurAmount.toFixed(1)}px)`;
-        document.getElementById('statusText').innerText = 
-            `กำลังขยาย: ${zoomLabel} | ความชัด: ${clarityText} | แสง: ${brightness}%`;
-    }
+                <!-- 1. จานหมุนเลนส์วัตถุ (Nosepiece & Objectives) -->
+                <g id="part-lens" class="hotspot" onclick="selectPart('lens')">
+                    <path d="M 75 100 L 117 100 L 122 115 L 70 115 Z" fill="#334155"/>
+                    <rect x="88" y="115" width="16" height="26" rx="2" fill="#38bdf8"/>
+                    <text x="15" y="122" fill="#38bdf8" font-size="11" font-weight="bold">1. เลนส์วัตถุ</text>
+                </g>
 
-    function adjustFocus(step) {
-        focusLevel += step;
-        knobAngle += step * 30;
-        document.getElementById('focusKnob').style.transform = `rotate(${knobAngle}deg)`;
-        updateMicroscope();
-    }
+                <!-- 2. แท่นวางวัตถุ (Stage) -->
+                <g id="part-stage" class="hotspot" onclick="selectPart('stage')">
+                    <rect x="55" y="155" width="85" height="10" rx="2" fill="#10b981"/>
+                    <rect x="75" y="151" width="45" height="4" fill="#a7f3d0"/> <!-- แผ่นสไลด์ -->
+                    <text x="5" y="163" fill="#10b981" font-size="11" font-weight="bold">2. แท่นสไลด์</text>
+                </g>
 
-    function adjustLight(step) {
-        brightness = Math.min(200, Math.max(20, brightness + step));
-        updateMicroscope();
-    }
+                <!-- 3. แหล่งกำเนิดแสง (Illuminator) -->
+                <g id="part-light" class="hotspot" onclick="selectPart('light')">
+                    <rect x="82" y="205" width="30" height="25" rx="4" fill="#fbbf24"/>
+                    <polygon points="87,205 107,205 102,185 92,185" fill="rgba(251, 191, 36, 0.3)"/>
+                    <text x="15" y="220" fill="#fbbf24" font-size="11" font-weight="bold">3. หลอดไฟ</text>
+                </g>
 
-    function setZoom(scale, label, btn) {
-        currentZoom = scale;
-        zoomLabel = label;
-        // เมื่อเปลี่ยนเลนส์ จุดโฟกัสที่ชัดจะเปลี่ยนไปเล็กน้อยเหมือนกล้องจริง
-        targetFocus = Math.floor(Math.random() * 5) - 2; 
-        
-        document.querySelectorAll('.lens-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        updateMicroscope();
-    }
+                <!-- 4. ปุ่มปรับภาพหยาบและละเอียด (Focus Knobs) -->
+                <g id="part-focus" class="hotspot" onclick="selectPart('focus')">
+                    <circle cx="158" cy="180" r="18" fill="#f43f5e"/>
+                    <circle cx="158" cy="180" r="9" fill="#fda4af"/>
+                    <text x="145" y="155" fill="#f43f5e" font-size="11" font-weight="bold">4. ปุ่มโฟกัส</text>
+                </g>
+            </svg>
+        </div>
 
-    // เริ่มต้นทำงาน
-    updateMicroscope();
-</script>
+        <!-- ช่องมองภาพจำลอง -->
+        <div class="eyepiece-wrapper">
+            <div class="eyepiece">
+                <svg id="specimen" viewBox="0 0 200 200">
+                    <rect width="200" height="200" fill="#dcfce7"/>
+                    <g stroke="#166534" stroke-width="3" fill="#86efac">
+                        <rect x="20" y="20" width="75" height="50" rx="8"/>
+                        <rect x="105" y="20" width="75" height="50" rx="8"/>
+                        <rect x="20" y="80" width="75" height="50" rx="8"/>
+                        <rect x="105" y="80" width="75" height="50" rx="8"/>
+                        <rect x="20" y="140" width="75" height="45" rx="8"/>
+                        <rect x="105" y="140" width="75" height="45" rx="8"/>
+                    </g>
+                    <circle cx="55" cy="45" r="8" fill="#14532d"/>
+                    <circle cx="140" cy="45" r="8" fill="#14532d"/>
+                    <circle cx="60" cy="105" r="8" fill="#14532d"/>
+                    <circle cx="135" cy="105" r="8" fill="#14532d"/>
+                    <circle cx="55" cy="162" r="8" fill="#14532d"/>
+                    <circle cx="142" cy="162" r="8" fill="#14532d"/>
+                </svg>
+            </div>
+            <div class="status-badge" id="statusBadge">กำลังขยาย: 4x | ความชัด: เบลอ</div>
+        </div>
+    </div>
 
-</body>
-</html>
+    <!-- ส่วนล่าง: แผงควบคุมที่เปลี่ยนไปตามจุดที่คลิก -->
+    <div class="bottom-panel" id="controlPanel">
+        <div class="panel-title">👆 แตะที่ส่วนประกอบบนรูปกล้องจุลทรรศน์ด้านบน</div>
+        <div class="panel-desc">เช่น เลนส์วัตถุ, แท่นสไลด์, หลอดไฟ หรือ ปุ่มโฟกัส เพื่อดึงปุ่มหมุนมาปรับค่าตรงนี้</div>
+    </div>
+
+    <script>
+        // ตัวแปรสถานะของกล้อง
+        let state = {
+            zoom: 1,
+            zoomLabel: '4x',
+            focus: 5,         // 0 คือชัดที่สุด
+            targetFocus: 0,
+            brightness: 100,
+            posX: 0,
+            posY: 0,
+            focusAngle: 0,
+            lightAngle: 0
+        };
+
+        // อัปเดตภาพในเลนส์ตามค่า Filter และ Transform
+        function updateView() {
+            const img = document.getElementById('specimen');
+            const blurVal = Math.abs(state.focus - state.targetFocus) * 1.4;
+            
+            img.style.filter = `blur(${blurVal}px) brightness(${state.brightness}%)`;
+            img.style.transform = `scale(${state.zoom}) translate(${state.posX}px, ${state.posY}px)`;
+
+            const clarity = blurVal === 0 ? "คมชัด 100%" : `เบลอ (${blurVal.toFixed(1)}px)`;
+            document.getElementById('statusBadge').innerText = 
