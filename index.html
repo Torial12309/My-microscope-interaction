@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Microscope Lab</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0f172a;
             color: #f8fafc;
             margin: 0;
@@ -15,247 +15,243 @@
             flex-direction: column;
             align-items: center;
         }
-        h2 { margin: 5px 0 15px 0; font-size: 1.3rem; color: #38bdf8; }
+        h2 { margin: 5px 0 15px 0; font-size: 1.25rem; color: #38bdf8; text-align: center; }
 
-        /* พื้นที่ส่วนบน: กล้องจุลทรรศน์ + เลนส์ตา */
-        .top-stage {
+        /* ================= PART 1: MICROSCOPE IMAGE (TOP) ================= */
+        .top-image-container {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            background: #1e293b;
+        }
+        .top-image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Interactive Hotspots on Image */
+        .hotspot-dot {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.85);
+            border: 3px solid #ffffff;
+            color: #0f172a;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+            animation: pulse 1.8s infinite;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .hotspot-dot:hover, .hotspot-dot.active {
+            background: #fbbf24;
+            transform: translate(-50%, -50%) scale(1.2);
+            animation: none;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(56, 189, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        /* ================= PART 2: ADJUSTMENT WORKSPACE (BOTTOM) ================= */
+        .bottom-workspace {
+            display: none; /* Hidden until a hotspot is clicked */
+            margin-top: 20px;
+            width: 100%;
+            max-width: 550px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .workspace-grid {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
             gap: 20px;
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 650px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-
-        /* กราฟิกกล้องจุลทรรศน์ */
-        .microscope-box {
-            position: relative;
-            width: 240px;
-            height: 280px;
-        }
-        .hotspot {
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .hotspot:hover {
-            filter: drop-shadow(0 0 8px #38bdf8);
-            opacity: 0.9;
-        }
-        .hotspot.selected {
-            stroke: #38bdf8;
-            stroke-width: 3px;
-            filter: drop-shadow(0 0 10px #38bdf8);
-        }
-
-        /* ช่องมองภาพ (Eyepiece View) */
-        .eyepiece-wrapper {
-            display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
-        .eyepiece {
-            width: 210px;
-            height: 210px;
+
+        /* Eyepiece Specimen Preview */
+        .lens-preview {
+            width: 200px;
+            height: 200px;
             border-radius: 50%;
             border: 6px solid #020617;
             overflow: hidden;
             position: relative;
             background: #000;
-            box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+            flex-shrink: 0;
         }
-        #specimen {
+        .lens-preview img {
             width: 100%;
             height: 100%;
+            object-fit: cover;
             transition: transform 0.25s ease, filter 0.1s linear;
-            transform-origin: center center;
-        }
-        .status-badge {
-            margin-top: 10px;
-            font-size: 0.85rem;
-            background: #334155;
-            padding: 5px 12px;
-            border-radius: 20px;
-            color: #cbd5e1;
         }
 
-        /* พื้นที่ส่วนล่าง: แผงควบคุมที่เปลี่ยนตามจุดที่คลิก */
-        .bottom-panel {
-            margin-top: 15px;
-            background: #1e293b;
-            border: 2px solid #334155;
-            border-radius: 16px;
-            padding: 20px;
-            width: 100%;
-            max-width: 650px;
-            min-height: 160px;
-            box-sizing: border-box;
+        /* Dynamic Control Panel */
+        .control-area {
+            flex: 1;
+            min-width: 220px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
-        .panel-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #fbbf24;
-            margin-bottom: 5px;
-        }
-        .panel-desc {
-            font-size: 0.9rem;
-            color: #94a3b8;
-            margin-bottom: 15px;
-        }
+        .part-title { font-size: 1.15rem; font-weight: bold; color: #fbbf24; margin-bottom: 6px; }
+        .part-desc { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 15px; }
 
-        /* ปุ่มหมุนจำลอง (Rotary Knob) */
-        .knob-group {
+        /* Rotary Knob Visual */
+        .knob-row {
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 20px;
+            justify-content: center;
+            gap: 15px;
         }
-        .knob-visual {
-            width: 75px;
-            height: 75px;
+        .rotary-knob {
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background: conic-gradient(#64748b, #94a3b8, #475569, #64748b);
-            border: 4px solid #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: conic-gradient(#475569, #94a3b8, #334155, #475569);
+            border: 4px solid #e2e8f0;
             position: relative;
-            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            transition: transform 0.2s ease;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        /* ขีดบอกตำแหน่งบนปุ่มหมุน */
-        .knob-visual::after {
+        .rotary-knob::after {
             content: '';
             position: absolute;
-            top: 6px;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 6px;
             height: 16px;
             background: #ef4444;
             border-radius: 3px;
         }
-        .action-btn {
+        .btn {
             background: #3b82f6;
             color: white;
             border: none;
-            padding: 10px 18px;
+            padding: 10px 14px;
             border-radius: 8px;
-            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
+            font-size: 0.9rem;
         }
-        .action-btn:hover { background: #2563eb; }
-        .action-btn:active { transform: scale(0.95); }
-        .lens-select-btn.active { background: #10b981; }
+        .btn:hover { background: #2563eb; }
+        .btn.active { background: #10b981; }
+        .status-text { margin-top: 12px; font-size: 0.85rem; color: #38bdf8; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>🔬 คลิกที่ส่วนประกอบของกล้องเพื่อปรับค่า</h2>
+    <h2>🔬 Click on the numbered parts to adjust the microscope</h2>
 
-    <!-- ส่วนบน: กล้องจุลทรรศน์ และ เลนส์ตา -->
-    <div class="top-stage">
-        
-        <!-- ภาพวาดกล้องจุลทรรศน์แบบคลิกได้ -->
-        <div class="microscope-box">
-            <svg viewBox="0 0 240 280" width="100%" height="100%">
-                <!-- ฐานกล้อง (Base) -->
-                <path d="M 40 250 L 200 250 L 190 230 L 50 230 Z" fill="#475569"/>
-                <!-- แขนกล้อง (Arm) -->
-                <path d="M 155 60 Q 195 140 165 230 L 140 230 Q 165 140 135 70 Z" fill="#64748b"/>
-                <!-- ลำกล้อง (Body Tube) & เลนส์ใกล้ตา (Eyepiece) -->
-                <rect x="85" y="15" width="22" height="35" rx="3" fill="#1e293b"/>
-                <rect x="80" y="45" width="32" height="55" rx="4" fill="#94a3b8"/>
+    <!-- ================= PART 1: MICROSCOPE IMAGE ================= -->
+    <div class="top-image-container">
+        <img src="microscope.jpg" alt="Microscope Diagram" onerror="this.src='https://placehold.co'">
 
-                <!-- 1. จานหมุนเลนส์วัตถุ (Nosepiece & Objectives) -->
-                <g id="part-lens" class="hotspot" onclick="selectPart('lens')">
-                    <path d="M 75 100 L 117 100 L 122 115 L 70 115 Z" fill="#334155"/>
-                    <rect x="88" y="115" width="16" height="26" rx="2" fill="#38bdf8"/>
-                    <text x="15" y="122" fill="#38bdf8" font-size="11" font-weight="bold">1. เลนส์วัตถุ</text>
-                </g>
-
-                <!-- 2. แท่นวางวัตถุ (Stage) -->
-                <g id="part-stage" class="hotspot" onclick="selectPart('stage')">
-                    <rect x="55" y="155" width="85" height="10" rx="2" fill="#10b981"/>
-                    <rect x="75" y="151" width="45" height="4" fill="#a7f3d0"/> <!-- แผ่นสไลด์ -->
-                    <text x="5" y="163" fill="#10b981" font-size="11" font-weight="bold">2. แท่นสไลด์</text>
-                </g>
-
-                <!-- 3. แหล่งกำเนิดแสง (Illuminator) -->
-                <g id="part-light" class="hotspot" onclick="selectPart('light')">
-                    <rect x="82" y="205" width="30" height="25" rx="4" fill="#fbbf24"/>
-                    <polygon points="87,205 107,205 102,185 92,185" fill="rgba(251, 191, 36, 0.3)"/>
-                    <text x="15" y="220" fill="#fbbf24" font-size="11" font-weight="bold">3. หลอดไฟ</text>
-                </g>
-
-                <!-- 4. ปุ่มปรับภาพหยาบและละเอียด (Focus Knobs) -->
-                <g id="part-focus" class="hotspot" onclick="selectPart('focus')">
-                    <circle cx="158" cy="180" r="18" fill="#f43f5e"/>
-                    <circle cx="158" cy="180" r="9" fill="#fda4af"/>
-                    <text x="145" y="155" fill="#f43f5e" font-size="11" font-weight="bold">4. ปุ่มโฟกัส</text>
-                </g>
-            </svg>
-        </div>
-
-        <!-- ช่องมองภาพจำลอง -->
-        <div class="eyepiece-wrapper">
-            <div class="eyepiece">
-                <svg id="specimen" viewBox="0 0 200 200">
-                    <rect width="200" height="200" fill="#dcfce7"/>
-                    <g stroke="#166534" stroke-width="3" fill="#86efac">
-                        <rect x="20" y="20" width="75" height="50" rx="8"/>
-                        <rect x="105" y="20" width="75" height="50" rx="8"/>
-                        <rect x="20" y="80" width="75" height="50" rx="8"/>
-                        <rect x="105" y="80" width="75" height="50" rx="8"/>
-                        <rect x="20" y="140" width="75" height="45" rx="8"/>
-                        <rect x="105" y="140" width="75" height="45" rx="8"/>
-                    </g>
-                    <circle cx="55" cy="45" r="8" fill="#14532d"/>
-                    <circle cx="140" cy="45" r="8" fill="#14532d"/>
-                    <circle cx="60" cy="105" r="8" fill="#14532d"/>
-                    <circle cx="135" cy="105" r="8" fill="#14532d"/>
-                    <circle cx="55" cy="162" r="8" fill="#14532d"/>
-                    <circle cx="142" cy="162" r="8" fill="#14532d"/>
-                </svg>
-            </div>
-            <div class="status-badge" id="statusBadge">กำลังขยาย: 4x | ความชัด: เบลอ</div>
-        </div>
+        <!-- Adjust hotspot positions using top (%) and left (%) -->
+        <button class="hotspot-dot" style="top: 38%; left: 45%;" onclick="openControl('lens', this)" title="Objective Lenses">1</button>
+        <button class="hotspot-dot" style="top: 52%; left: 45%;" onclick="openControl('stage', this)" title="Mechanical Stage">2</button>
+        <button class="hotspot-dot" style="top: 65%; left: 68%;" onclick="openControl('focus', this)" title="Focus Knobs">3</button>
+        <button class="hotspot-dot" style="top: 78%; left: 45%;" onclick="openControl('light', this)" title="Light Intensity">4</button>
     </div>
 
-    <!-- ส่วนล่าง: แผงควบคุมที่เปลี่ยนไปตามจุดที่คลิก -->
-    <div class="bottom-panel" id="controlPanel">
-        <div class="panel-title">👆 แตะที่ส่วนประกอบบนรูปกล้องจุลทรรศน์ด้านบน</div>
-        <div class="panel-desc">เช่น เลนส์วัตถุ, แท่นสไลด์, หลอดไฟ หรือ ปุ่มโฟกัส เพื่อดึงปุ่มหมุนมาปรับค่าตรงนี้</div>
+    <!-- ================= PART 2: ADJUSTMENT WORKSPACE ================= -->
+    <div class="bottom-workspace" id="workspace">
+        <div class="workspace-grid">
+            <!-- Specimen View -->
+            <div class="lens-preview">
+                <img id="specimenImg" src="cell.jpg" alt="Specimen View" onerror="this.src='https://placehold.co'">
+            </div>
+
+            <!-- Controls Area -->
+            <div class="control-area">
+                <div id="dynamicControls"></div>
+                <div class="status-text" id="statusDisplay">Magnification: 4x | Clarity: Blurry | Light: 100%</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // ตัวแปรสถานะของกล้อง
-        let state = {
+        let sim = {
             zoom: 1,
-            zoomLabel: '4x',
-            focus: 5,         // 0 คือชัดที่สุด
+            zoomText: '4x',
+            focus: 4,         // 0 = sharpest focus
             targetFocus: 0,
             brightness: 100,
-            posX: 0,
-            posY: 0,
-            focusAngle: 0,
-            lightAngle: 0
+            x: 0,
+            y: 0,
+            focusDeg: 0,
+            lightDeg: 0
         };
 
-        // อัปเดตภาพในเลนส์ตามค่า Filter และ Transform
-        function updateView() {
-            const img = document.getElementById('specimen');
-            const blurVal = Math.abs(state.focus - state.targetFocus) * 1.4;
-            
-            img.style.filter = `blur(${blurVal}px) brightness(${state.brightness}%)`;
-            img.style.transform = `scale(${state.zoom}) translate(${state.posX}px, ${state.posY}px)`;
+        // Update CSS Filters and Transform on the specimen image
+        function applyFilters() {
+            const img = document.getElementById('specimenImg');
+            const blurPx = Math.abs(sim.focus - sim.targetFocus) * 1.5;
 
-            const clarity = blurVal === 0 ? "คมชัด 100%" : `เบลอ (${blurVal.toFixed(1)}px)`;
-            document.getElementById('statusBadge').innerText = 
+            img.style.filter = `blur(${blurPx}px) brightness(${sim.brightness}%)`;
+            img.style.transform = `scale(${sim.zoom}) translate(${sim.x}px, ${sim.y}px)`;
+
+            const clarity = blurPx === 0 ? "100% Sharp" : `Blurry (${blurPx.toFixed(1)}px)`;
+            document.getElementById('statusDisplay').innerText = 
+                `Magnification: ${sim.zoomText} | ${clarity} | Light: ${sim.brightness}%`;
+        }
+
+        // Reveal bottom panel when a hotspot is clicked
+        function openControl(part, btnElement) {
+            document.querySelectorAll('.hotspot-dot').forEach(dot => dot.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            const workspace = document.getElementById('workspace');
+            workspace.style.display = 'block';
+            workspace.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            const box = document.getElementById('dynamicControls');
+
+            if (part === 'focus') {
+                box.innerHTML = `
+                    <div class="part-title">3. Coarse & Fine Focus Knob</div>
+                    <div class="part-desc">Rotate the knob to bring the specimen into sharp focus.</div>
+                    <div class="knob-row">
+                        <button class="btn" onclick="changeFocus(-1)">↺ Counter-CW</button>
+                        <div class="rotary-knob" id="knobUI" style="transform: rotate(${sim.focusDeg}deg)"></div>
+                        <button class="btn" onclick="changeFocus(1)">Clockwise ↻</button>
+                    </div>
+                `;
+            } 
+            else if (part === 'light') {
+                box.innerHTML = `
+                    <div class="part-title">4. Illuminator Light Control</div>
+                    <div class="part-desc">Turn the dial to increase or decrease light brightness.</div>
+                    <div class="knob-row">
+                        <button class="btn" onclick="changeLight(-20)">↺ Dim</button>
+                        <div class="rotary-knob" id="knobUI" style="transform: rotate(${sim.lightDeg}deg)"></div>
+                        <button class="btn" onclick="changeLight(20)">Brighten ↻</button>
+                    </div>
+                `;
+            } 
+            else if (part === 'lens') {
+                box.innerHTML = `
+                    <div class="part-title">1. Revolving Nosepiece (Objectives)</div>
+                    <div class="part-desc">Select an objective lens to change magnification level.</div>
